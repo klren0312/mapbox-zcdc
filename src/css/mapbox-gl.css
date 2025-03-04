@@ -369,44 +369,6 @@
     100% { transform: rotate(360deg); }
 }
 
-a.mapboxgl-ctrl-logo {
-    width: 88px;
-    height: 23px;
-    margin: 0 0 -4px -4px;
-    display: block;
-    background-repeat: no-repeat;
-    cursor: pointer;
-    overflow: hidden;
-    background-image: svg-load("svg/mapboxgl-ctrl-logo.svg");
-}
-
-a.mapboxgl-ctrl-logo.mapboxgl-compact {
-    width: 23px;
-}
-
-@media (-ms-high-contrast: active) {
-    a.mapboxgl-ctrl-logo {
-        @svg-load ctrl-logo-white url("svg/mapboxgl-ctrl-logo.svg") {
-            #outline { opacity: 1; }
-            #fill { opacity: 1; }
-        }
-
-        background-color: transparent;
-        background-image: svg-inline(ctrl-logo-white);
-    }
-}
-
-@media (-ms-high-contrast: black-on-white) {
-    a.mapboxgl-ctrl-logo {
-        @svg-load ctrl-logo-black url("svg/mapboxgl-ctrl-logo.svg") {
-            #outline { opacity: 1; fill: #fff; stroke: #fff; }
-            #fill { opacity: 1; fill: #000; }
-        }
-
-        background-image: svg-inline(ctrl-logo-black);
-    }
-}
-
 .mapboxgl-ctrl.mapboxgl-ctrl-attrib {
     padding: 0 5px;
     background-color: rgb(255 255 255 / 50%);
