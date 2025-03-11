@@ -115,6 +115,39 @@
       maxZoom: 18
     });
 
+    function addRasterLayer(layerId, tileUrl, options = {}) {
+      if (map.getSource(layerId)) {
+        console.warn(`Source ${layerId} already exists`);
+        return;
+      }
+
+      // 添加数据源
+      map.addSource(layerId, {
+        type: 'raster',
+        tiles: [tileUrl],
+        tileSize: options.tileSize || 256,
+        ...options
+      });
+
+      // 添加图层
+      map.addLayer({
+        id: layerId,
+        type: 'raster',
+        source: layerId,
+        minzoom: options.minzoom || 0,
+        maxzoom: options.maxzoom || 22,
+        layout: options.layout || {},
+        paint: options.paint || {
+          'raster-opacity': 1
+        }
+      });
+
+      // 更新图层管理器
+      if (layerManager) {
+        layerManager.updateLayerList();
+      }
+    }
+
     // 添加一个函数用于动态添加图层
     function addCustomLayer(layerId, sourceData, type = 'circle', paint = {}) {
       if (map.getLayer(layerId)) {
@@ -300,6 +333,15 @@
         }]
       };
 
+      addRasterLayer(
+        'amap-satellite-layer', 
+        'https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}',
+        {
+          tileSize: 256,
+          minzoom: 3,
+          maxzoom: 18
+        }
+      )
 
       addCustomLayer('layer1-红色', point1, 'circle', {
         'circle-radius': 10,
