@@ -5,8 +5,8 @@
   <meta charset="utf-8">
   <title>Display a map on a webpage</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
-  <link href="./dist/mapbox-gl.css" rel="stylesheet">
-  <script src="./dist/mapbox-gl.js"></script>
+  <link href="../dist/mapbox-gl.css" rel="stylesheet">
+  <script src="../dist/mapbox-gl.js"></script>
   <style>
     body {
       margin: 0;
@@ -85,13 +85,6 @@
           ],
           tileSize: 256
         },
-        "amap-satellite": {
-          type: "raster",
-          tiles: [
-            "https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}"
-          ],
-          tileSize: 256
-        }
       },
       layers: [
         {
@@ -101,7 +94,6 @@
           minzoom: 3,
           maxzoom: 18
         }
-        // 可以添加更多图层
       ]
     };
 
@@ -114,66 +106,6 @@
       minZoom: 3,
       maxZoom: 18
     });
-
-    function addRasterLayer(layerId, tileUrl, options = {}) {
-      if (map.getSource(layerId)) {
-        console.warn(`Source ${layerId} already exists`);
-        return;
-      }
-
-      // 添加数据源
-      map.addSource(layerId, {
-        type: 'raster',
-        tiles: [tileUrl],
-        tileSize: options.tileSize || 256,
-        ...options
-      });
-
-      // 添加图层
-      map.addLayer({
-        id: layerId,
-        type: 'raster',
-        source: layerId,
-        minzoom: options.minzoom || 0,
-        maxzoom: options.maxzoom || 22,
-        layout: options.layout || {},
-        paint: options.paint || {
-          'raster-opacity': 1
-        }
-      });
-
-      // 更新图层管理器
-      if (layerManager) {
-        layerManager.updateLayerList();
-      }
-    }
-
-    // 添加一个函数用于动态添加图层
-    function addCustomLayer(layerId, sourceData, type = 'circle', paint = {}) {
-      if (map.getLayer(layerId)) {
-        console.warn(`Layer ${layerId} already exists`);
-        return;
-      }
-
-      map.addLayer({
-        id: layerId,
-        type: type,
-        source: {
-          type: 'geojson',
-          data: sourceData
-        },
-        paint: paint
-      });
-    }
-
-    // 添加一个函数用于修改图层层级
-    function moveLayer(layerId, beforeId) {
-      if (!map.getLayer(layerId)) {
-        console.warn(`Layer ${layerId} does not exist`);
-        return;
-      }
-      map.moveLayer(layerId, beforeId);
-    }
 
     // 图层管理类
     class LayerManager {
@@ -191,8 +123,7 @@
         // 只显示自定义图层，过滤掉底图图层
         const customLayers = layers.filter(layer => 
           layer.id !== 'amap-vec-layer' && 
-          layer.source !== 'amap-vec' && 
-          layer.source !== 'amap-satellite'
+          layer.source !== 'amap-vec'
         );
 
         // 反转数组顺序，使显示顺序与图层叠加顺序一致
@@ -202,11 +133,11 @@
           li.draggable = true;
           li.setAttribute('data-id', layer.id);
           li.innerHTML = `
-                <span>${layer.id}</span>
-                <input type="checkbox" ${this.map.getLayoutProperty(layer.id, 'visibility') !== 'none' ? 'checked' : ''}>
-            `;
+            <span>${layer.id}</span>
+            <input type="checkbox" ${this.map.getLayoutProperty(layer.id, 'visibility') !== 'none' ? 'checked' : ''}>
+          `;
 
-          // 添加可见性切换
+          // 添加图层可见性切换
           const checkbox = li.querySelector('input');
           checkbox.onclick = (e) => {
             e.stopPropagation();
@@ -259,79 +190,103 @@
           const newOrder = items.map(item => item.getAttribute('data-id')).reverse();
           console.log('order list', newOrder)
           // 找到被拖动图层的新位置
-          const draggedIndex = newOrder.indexOf(draggedId);
-          const afterLayerId = newOrder[draggedIndex + 1];
-          const beforeLayerId = newOrder[draggedIndex - 1];
+          const draggedIndex = newOrder.indexOf(draggedId); // 当前拖动的索引
+          const afterLayerId = newOrder[draggedIndex + 1]; // 当前拖动的上层图层id
           console.log('draggedId', draggedId, 'afterLayerId', afterLayerId, 'beforeLayerId', beforeLayerId);
           if (afterLayerId) {
             this.map.moveLayer(draggedId, afterLayerId);
           } else {
+            // 上层为空，则移动到顶层
             this.map.moveLayer(draggedId, undefined);
           }
           console.log('当前图层', this.map.getStyle().layers.map(v => v.source))
         });
       }
 
+      // 获取拖拽位置
       getDragAfterElement(y) {
-        const draggableElements = [...this.layerList.querySelectorAll('.layer-item:not(.dragging)')];
-        
-        return draggableElements.reduce((closest, child) => {
-          const box = child.getBoundingClientRect();
-          const offset = y - box.top - box.height / 2;
-          
-          if (offset < 0 && offset > closest.offset) {
-            return { offset: offset, element: child };
-          } else {
-            return closest;
-          }
-        }, { offset: Number.NEGATIVE_INFINITY }).element;
+        const element = document.elementFromPoint(this.layerList.getBoundingClientRect().left, y);
+        return element?.closest('.layer-item');
       }
     }
 
+    // 添加切片图层
+    function addRasterLayer(layerId, tileUrl, options = {}) {
+      if (map.getSource(layerId)) {
+        console.warn(`Source ${layerId} already exists`);
+        return;
+      }
+
+      // 添加数据源
+      map.addSource(layerId, {
+        type: 'raster',
+        tiles: [tileUrl],
+        tileSize: options.tileSize || 256,
+        ...options
+      });
+
+      // 添加图层
+      map.addLayer({
+        id: layerId,
+        type: 'raster',
+        source: layerId,
+        minzoom: options.minzoom || 0,
+        maxzoom: options.maxzoom || 22,
+        layout: options.layout || {},
+        paint: options.paint || {
+          'raster-opacity': 1
+        }
+      });
+    }
+
+    // 添加一个圆点图层
+    function addPointer(layerId, position, type = 'circle', paint = {}) {
+      if (map.getLayer(layerId)) {
+        console.warn(`Layer ${layerId} already exists`);
+        return;
+      }
+      const sourceData = {
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: position
+          },
+          properties: {
+            title: layerId
+          }
+        }]
+      };
+
+      map.addLayer({
+        id: layerId,
+        type: type,
+        source: {
+          type: 'geojson',
+          data: sourceData
+        },
+        paint: paint
+      });
+    }
+
+    // 添加geojson图层
+    function addGeoJson() {
+      map.addSource('hf', {
+        type: 'geojson',
+        // Use a URL for the value for the `data` property.
+        data: './hf.json'
+      });
+
+      map.addLayer({
+        'id': 'hf-layer',
+        'type': 'heatmap',
+        'source': 'hf',
+      });
+    }
+    
     // 在地图加载完成后初始化图层管理器
     map.on('load', function () {
-      // 示例：添加多个图层
-      const point1 = {
-        type: 'FeatureCollection',
-        features: [{
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: [121.47, 31.23]
-          },
-          properties: {
-            title: 'Point 1'
-          }
-        }]
-      };
-
-      const point2 = {
-        type: 'FeatureCollection',
-        features: [{
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: [121.48, 31.24]
-          },
-          properties: {
-            title: 'Point 2'
-          }
-        }]
-      };
-
-      const point3 = {
-        type: 'FeatureCollection',
-        features: [{
-          type: 'Feature',
-          geometry: {
-            type: 'Point',
-            coordinates: [121.48, 31.24]
-          },
-          properties: {
-            title: 'Point 3'
-          }
-        }]
-      };
 
       addRasterLayer(
         'amap-satellite-layer', 
@@ -343,23 +298,26 @@
         }
       )
 
-      addCustomLayer('layer1-红色', point1, 'circle', {
+      addPointer('layer1-红色', [121.47, 31.1], 'circle', {
         'circle-radius': 10,
         'circle-color': '#ff0000'
       });
 
-      addCustomLayer('layer2-灰色', point2, 'circle', {
+      addPointer('layer2-灰色', [121.3, 31.23], 'circle', {
         'circle-radius': 10,
         'circle-color': '#dfdfdf'
       });
 
-      addCustomLayer('layer3-蓝色', point2, 'circle', {
+      addPointer('layer3-蓝色', [121.2, 31.3], 'circle', {
         'circle-radius': 10,
         'circle-color': '#0058f7'
       });
 
+      addGeoJson()
+
       // 初始化图层管理器
       const layerManager = new LayerManager(map);
+
       layerManager.updateLayerList();
     });
   </script>
